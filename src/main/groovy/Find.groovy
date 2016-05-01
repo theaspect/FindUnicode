@@ -4,10 +4,10 @@ import java.nio.file.*
 
 class Find {
 
-    def files
+    ArrayList<File> files
 
     Find(ArrayList<String> files) {
-        this.files = new ArrayList<String>()
+        this.files = new ArrayList()
     }
 
     private static Option makeOptionWithArgument(String shortName, String description, boolean isRequired) {
@@ -36,18 +36,18 @@ class Find {
         writer.flush()
     }
 
-    void filesList(def path){
-        try {
-            DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path.toString()))
-            for (Path file : stream) {
-                if (!file.toFile().isDirectory()) {
-                    files.add(file.getFileName())
-                }
+    void filesList(String path){
+        File f = new File(path);
+        for (File s : f.listFiles()) {
+            if (s.isFile()) {
+                files.add(s);
+            } else if (s.isDirectory()) {
+                filesList(s.getAbsolutePath());
             }
-        } catch (IOException | DirectoryIteratorException e) {
-            println(e);
         }
     }
+
+
 
     public static int work(String[] args){
 
@@ -65,12 +65,15 @@ class Find {
 
         Find unicode = new Find()
         def path
-
+        // Find file in directory
         path = commandLine.getOptionValue("path")
 
         unicode.filesList(path)
 
-        println(unicode.files)
+        for (File file : unicode.files) {
+            //println(fil.getName());
+            println(file.path.toString())
+        }
 
         return 0
 
