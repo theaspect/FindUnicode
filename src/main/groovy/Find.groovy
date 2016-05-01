@@ -1,12 +1,10 @@
 import groovyjarjarcommonscli.*
 
-import java.nio.file.*
-
 class Find {
 
     ArrayList<File> files
 
-    Find(ArrayList<String> files) {
+    Find() {
         this.files = new ArrayList()
     }
 
@@ -47,6 +45,25 @@ class Find {
         }
     }
 
+    void filesList(String path, ArrayList expansion){
+        ArrayList file
+
+        File f = new File(path);
+        for (File s : f.listFiles()) {
+            if (s.isFile()) {
+                file = s.toString().split("\\.")
+                for(int i = 0; i < expansion.size(); i++){
+                    if (file.last().equals(expansion.get(i))){
+                        files.add(s);
+                    }
+                }
+
+            } else if (s.isDirectory()) {
+                filesList(s.getAbsolutePath(), expansion);
+            }
+        }
+    }
+
 
 
     public static int work(String[] args){
@@ -65,14 +82,30 @@ class Find {
 
         Find unicode = new Find()
         def path
+        ArrayList expansion
         // Find file in directory
         path = commandLine.getOptionValue("path")
 
-        unicode.filesList(path)
+        if(commandLine.getOptionValue("expansion")){
+            expansion = commandLine.getOptionValue("expansion").toString().split("\\,")
 
-        for (File file : unicode.files) {
-            //println(fil.getName());
-            println(file.path.toString())
+            println(expansion)
+
+            unicode.filesList(path, expansion)
+
+            for (File file : unicode.files) {
+                //println(fil.getName());
+                println(file.path.toString())
+            }
+
+        } else {
+
+            unicode.filesList(path)
+
+            for (File file : unicode.files) {
+                //println(fil.getName());
+                println(file.path.toString())
+            }
         }
 
         return 0
