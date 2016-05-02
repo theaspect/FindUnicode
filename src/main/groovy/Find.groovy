@@ -1,8 +1,22 @@
 import groovyjarjarcommonscli.*
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import java.util.regex.Pattern
 
 class Find {
 
+    Logger logger = LogManager.getLogger(Find.class);
+
     ArrayList<File> files
+
+    public boolean isDirectory(String path) {
+        File f = new File(path)
+        if (!f.exists()) {
+            return false
+        } else {
+            return true
+        }
+    }
 
     Find() {
         this.files = new ArrayList()
@@ -34,8 +48,8 @@ class Find {
         writer.flush()
     }
 
-    void filesList(String path){
-        File f = new File(path);
+    void filesList(String path) {
+        File f = new File(path)
         for (File s : f.listFiles()) {
             if (s.isFile()) {
                 files.add(s);
@@ -43,30 +57,62 @@ class Find {
                 filesList(s.getAbsolutePath());
             }
         }
+
     }
 
-    void filesList(String path, ArrayList expansion){
+    void filesList(String path, ArrayList expansion) {
         ArrayList file
-
-        File f = new File(path);
+        File f = new File(path)
         for (File s : f.listFiles()) {
             if (s.isFile()) {
                 file = s.toString().split("\\.")
-                for(int i = 0; i < expansion.size(); i++){
-                    if (file.last().equals(expansion.get(i))){
+                for (int i = 0; i < expansion.size(); i++) {
+                    if (file.last().equals(expansion.get(i))) {
                         files.add(s);
                     }
                 }
-
             } else if (s.isDirectory()) {
                 filesList(s.getAbsolutePath(), expansion);
             }
         }
     }
 
+    void analysisFile(String filePath) {
+        boolean b
+        int countInLine
+        int countInFile = 0
+        int lineNumber = 0
+        File f = new File(filePath);
+
+        BufferedReader fin = new BufferedReader(new FileReader(f));
+        String line;
+        logger.info("Analysis of the file " + f.getName())
+        while ((line = fin.readLine()) != null) {
+            lineNumber++
+            countInLine = 0
+            for (int i = 0; i < line.length(); i++) {
+                b = Pattern.matches("[^\\p{ASCII}]", line[i]);
+                if (b) {
+                    countInLine++
+                    countInFile++
+                }
+            }
+            if (countInLine > 5) {
+                logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters")
+            }
+            if (countInLine != 0 && countInLine <= 5) {
+                logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters")
+            }
+            if (countInFile > 100) {
+                logger.info("in file " + f.getName() + " more than 100 not ASCII of characters")
+                logger.println()
+                break
+            }
+        }
+    }
 
 
-    public static int work(String[] args){
+    public static int work(String[] args) {
 
         Options options = new Options()
                 .addOption(makeOptionWithArgument("expansion", "Expansion", false))
@@ -83,34 +129,28 @@ class Find {
         Find unicode = new Find()
         def path
         ArrayList expansion
+
         // Find file in directory
         path = commandLine.getOptionValue("path")
 
-        if(commandLine.getOptionValue("expansion")){
-            expansion = commandLine.getOptionValue("expansion").toString().split("\\,")
-
-            println(expansion)
-
-            unicode.filesList(path, expansion)
-
-            for (File file : unicode.files) {
-                //println(fil.getName());
-                println(file.path.toString())
+        if (unicode.isDirectory(path)) {
+            if (commandLine.getOptionValue("expansion")) {
+                expansion = commandLine.getOptionValue("expansion").toString().split("\\,")
+                unicode.filesList(path, expansion)
+            } else {
+                unicode.filesList(path)
             }
-
         } else {
+            unicode.logger.error("Path not found")
+            return 1
+        }
 
-            unicode.filesList(path)
-
-            for (File file : unicode.files) {
-                //println(fil.getName());
-                println(file.path.toString())
-            }
+        //Find not ASCII char
+        for (File file : unicode.files) {
+            unicode.analysisFile(file.path.toString())
         }
 
         return 0
-
-
     }
 
     public static void main(String[] args) {
