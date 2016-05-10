@@ -129,12 +129,18 @@ class Find {
                     ArrayList file
                     file = it.fileName.toString().split("\\.")
 
-                    if((file.last() ==~ /${commandLine.getOptionValue("expansion")}/)){
+                    if ((file.last() ==~ /${commandLine.getOptionValue("expansion")}/)) { //(txt)|(xls)
                         println it
                         unicode.analysisFile(it.toString())
                     }
                 }
+            } else {
+                Files.walk(Paths.get(path)).each {
+                    unicode.analysisFile(it.toString())
+                }
             }
+        }else{
+            return 1
         }
 
         return 0
