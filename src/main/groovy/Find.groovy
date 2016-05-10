@@ -1,9 +1,15 @@
 import groovyjarjarcommonscli.*
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
+
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.regex.Pattern
 
 class Find {
+
+    private static final int MAX_MATCH_IN_LINE = 5
+    private static final int MAX_MATCH_IN_FILE = 100
 
     Logger logger = LogManager.getLogger(Find.class);
 
@@ -48,69 +54,56 @@ class Find {
         writer.flush()
     }
 
-    void filesList(String path) {
-        File f = new File(path)
-        for (File s : f.listFiles()) {
-            if (s.isFile()) {
-                files.add(s);
-            } else if (s.isDirectory()) {
-                filesList(s.getAbsolutePath());
-            }
-        }
+    void analysisFile(def filePath) {
 
-    }
-
-    void filesList(String path, ArrayList expansion) {
-        ArrayList file
-        File f = new File(path)
-        for (File s : f.listFiles()) {
-            if (s.isFile()) {
-                file = s.toString().split("\\.")
-                for (int i = 0; i < expansion.size(); i++) {
-                    if (file.last().equals(expansion.get(i))) {
-                        files.add(s);
-                    }
-                }
-            } else if (s.isDirectory()) {
-                filesList(s.getAbsolutePath(), expansion);
-            }
-        }
-    }
-
-    void analysisFile(String filePath) {
         boolean b
         int countInLine
         int countInFile = 0
         int lineNumber = 0
-        File f = new File(filePath);
+        File f = new File(filePath.toString());
 
-        BufferedReader fin = new BufferedReader(new FileReader(f));
-        String line;
-        logger.info("Analysis of the file " + f.getName())
-        while ((line = fin.readLine()) != null) {
-            lineNumber++
-            countInLine = 0
-            for (int i = 0; i < line.length(); i++) {
-                b = Pattern.matches("[^\\p{ASCII}]", line[i]);
-                if (b) {
-                    countInLine++
-                    countInFile++
+        if (!f.isDirectory()) {
+
+            int firstNotAsciiChar
+            int lastNotAsciiChar
+
+            BufferedReader fin = new BufferedReader(new FileReader(f));
+            String line;
+            logger.info("Analysis of the file " + f.getName())
+            while ((line = fin.readLine()) != null) {
+                lineNumber++
+                countInLine = 0
+                for (int i = 1; i < line.length(); i++) {
+                    b = Pattern.matches("[^\\p{ASCII}]", line[i])
+                    if (b) {
+                        countInLine++
+                        countInFile++
+                        if (countInLine == 1) {
+                            firstNotAsciiChar = i
+                        }
+                        if (countInLine <= MAX_MATCH_IN_LINE) {
+                            lastNotAsciiChar = i
+
+                        }
+                    }
                 }
-            }
-            if (countInLine > 5) {
-                logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters")
-            }
-            if (countInLine != 0 && countInLine <= 5) {
-                logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters")
-            }
-            if (countInFile > 100) {
-                logger.info("in file " + f.getName() + " more than 100 not ASCII of characters")
-                logger.println()
-                break
+                if (countInLine > MAX_MATCH_IN_LINE) {
+                    logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1) + "...")
+                }
+                if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
+                    logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1))
+                }
+                if (countInFile > MAX_MATCH_IN_FILE) {
+                    logger.info("in file " + f.getName() + " more than 100 not ASCII of characters. Last line: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1))
+                    break
+                }
             }
         }
     }
 
+    void fileTest() {
+        analysisFile()
+    }
 
     public static int work(String[] args) {
 
@@ -128,26 +121,20 @@ class Find {
 
         Find unicode = new Find()
         def path
-        ArrayList expansion
-
-        // Find file in directory
         path = commandLine.getOptionValue("path")
 
         if (unicode.isDirectory(path)) {
             if (commandLine.getOptionValue("expansion")) {
-                expansion = commandLine.getOptionValue("expansion").toString().split("\\,")
-                unicode.filesList(path, expansion)
-            } else {
-                unicode.filesList(path)
-            }
-        } else {
-            unicode.logger.error("Path not found")
-            return 1
-        }
+                Files.walk(Paths.get(path)).each {
+                    ArrayList file
+                    file = it.fileName.toString().split("\\.")
 
-        //Find not ASCII char
-        for (File file : unicode.files) {
-            unicode.analysisFile(file.path.toString())
+                    if((file.last() ==~ /${commandLine.getOptionValue("expansion")}/)){
+                        println it
+                        unicode.analysisFile(it.toString())
+                    }
+                }
+            }
         }
 
         return 0
