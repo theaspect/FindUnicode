@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 class Find {
@@ -54,55 +55,37 @@ class Find {
         writer.flush()
     }
 
-    void analysisFile(def filePath) {
-
-        boolean b
+    void analysisFile(FileInputStream paths) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
-        File f = new File(filePath.toString());
+        ArrayList indexNoAscii
 
-        if (!f.isDirectory()) {
-
-            int firstNotAsciiChar
-            int lastNotAsciiChar
-
-            BufferedReader fin = new BufferedReader(new FileReader(f));
-            String line;
-            logger.info("Analysis of the file " + f.getName())
-            while ((line = fin.readLine()) != null) {
-                lineNumber++
-                countInLine = 0
-                for (int i = 1; i < line.length(); i++) {
-                    b = Pattern.matches("[^\\p{ASCII}]", line[i])
-                    if (b) {
-                        countInLine++
-                        countInFile++
-                        if (countInLine == 1) {
-                            firstNotAsciiChar = i
-                        }
-                        if (countInLine <= MAX_MATCH_IN_LINE) {
-                            lastNotAsciiChar = i
-
-                        }
-                    }
-                }
-                if (countInLine > MAX_MATCH_IN_LINE) {
-                    logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1) + "...")
-                }
-                if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
-                    logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1))
-                }
-                if (countInFile > MAX_MATCH_IN_FILE) {
-                    logger.info("in file " + f.getName() + " more than 100 not ASCII of characters. Last line: " + line.substring(firstNotAsciiChar, lastNotAsciiChar + 1))
-                    break
-                }
+        paths.eachLine {
+            if (countInFile > MAX_MATCH_IN_FILE) {
+                return
             }
-        }
-    }
+            lineNumber++
+            Pattern pattern = Pattern.compile("[^\\p{ASCII}]")
+            Matcher matcher = pattern.matcher(it)
+            countInLine = 0
+            indexNoAscii = new ArrayList()
+            while (matcher.find()) {
+                indexNoAscii.add(matcher.start())
+                countInLine++
+                countInFile++
+            }
 
-    void fileTest() {
-        analysisFile()
+            if (countInLine > MAX_MATCH_IN_LINE) {
+                logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters: " + it.substring(indexNoAscii.first(), indexNoAscii[MAX_MATCH_IN_LINE] + 1) + "...")
+            }
+
+            if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
+                logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters: " + it.substring(indexNoAscii.first(), indexNoAscii.last() + 1))
+            }
+
+        }
+        paths.close()
     }
 
     public static int work(String[] args) {
@@ -124,22 +107,19 @@ class Find {
         path = commandLine.getOptionValue("path")
 
         if (unicode.isDirectory(path)) {
-            if (commandLine.getOptionValue("expansion")) {
-                Files.walk(Paths.get(path)).each {
-                    ArrayList file
-                    file = it.fileName.toString().split("\\.")
-
-                    if ((file.last() ==~ /${commandLine.getOptionValue("expansion")}/)) { //(txt)|(xls)
-                        println it
-                        unicode.analysisFile(it.toString())
+            Files.walk(Paths.get(path)).each {
+                if (!Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)) {
+                    unicode.logger.info("Analysis of the file " + it.fileName)
+                    if (commandLine.getOptionValue("expansion")) {
+                        if (Pattern.matches(/^(.*(${commandLine.getOptionValue("expansion")}))[^.]*$/, it.fileName.toString() as CharSequence)) {
+                            unicode.analysisFile(new FileInputStream(it.toString()))
+                        }
+                    } else {
+                        unicode.analysisFile(new FileInputStream(it.toString()))
                     }
                 }
-            } else {
-                Files.walk(Paths.get(path)).each {
-                    unicode.analysisFile(it.toString())
-                }
             }
-        }else{
+        } else {
             return 1
         }
 
@@ -149,4 +129,5 @@ class Find {
     public static void main(String[] args) {
         System.exit(work(args))
     }
+
 }
