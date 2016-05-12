@@ -55,13 +55,17 @@ class Find {
         writer.flush()
     }
 
-    void analysisFile(FileInputStream paths) {
+    ArrayList analysisFile(FileInputStream paths) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
         ArrayList indexNoAscii
+        def result = new ArrayList<Result>()
 
         paths.eachLine {
+            if(it.startsWith("\uFEFF")){
+                it = it.substring(1)
+            }
             if (countInFile > MAX_MATCH_IN_FILE) {
                 return
             }
@@ -76,19 +80,21 @@ class Find {
                 countInFile++
             }
 
+            if (lineNumber == 1){
+                countInLine -= 1
+            }
+
             if (countInLine > MAX_MATCH_IN_LINE) {
-                logger.info("in line №" + lineNumber + " more than 5 not ASCII of characters: " + it.substring(indexNoAscii.first(), indexNoAscii[MAX_MATCH_IN_LINE] + 1) + "...")
+                result.add(new Result(lineNumber, it.substring(indexNoAscii.first(), indexNoAscii[MAX_MATCH_IN_LINE]), indexNoAscii.take(MAX_MATCH_IN_LINE), " more than 5 not ASCII of characters: "))
             }
 
             if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
-                logger.info("in line №" + lineNumber + " - " + countInLine + " not ASCII of characters: " + it.substring(indexNoAscii.first(), indexNoAscii.last() + 1))
-            }
+                result.add(new Result(lineNumber, it.substring(indexNoAscii.first(), indexNoAscii.last() + 1), indexNoAscii, " - " + countInLine + " not ASCII of characters: "))
 
-        }
-        if (countInFile > MAX_MATCH_IN_FILE) {
-            logger.info("in file more than 100 not ASCII of characters.")
+            }
         }
         paths.close()
+        return result
     }
 
     public static int work(String path, String expansion) {
@@ -101,11 +107,15 @@ class Find {
                     if (expansion != null) {
                         if (Pattern.matches(/^(.*(${expansion}))[^.]*$/, it.fileName.toString() as CharSequence)) {
                             unicode.logger.info("Analysis of the file " + it.fileName)
-                            unicode.analysisFile(new FileInputStream(it.toString()))
+                            unicode.analysisFile(new FileInputStream(it.toString())).each {
+                                aResult -> println aResult
+                            }
                         }
                     } else {
                         unicode.logger.info("Analysis of the file " + it.fileName)
-                        unicode.analysisFile(new FileInputStream(it.toString()))
+                        unicode.analysisFile(new FileInputStream(it.toString())).each {
+                            aResult -> println aResult
+                        }
                     }
                 }
             }
