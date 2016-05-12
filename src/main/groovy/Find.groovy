@@ -85,36 +85,26 @@ class Find {
             }
 
         }
+        if (countInFile > MAX_MATCH_IN_FILE) {
+            logger.info("in file more than 100 not ASCII of characters.")
+        }
         paths.close()
     }
 
-    public static int work(String[] args) {
-
-        Options options = new Options()
-                .addOption(makeOptionWithArgument("expansion", "Expansion", false))
-                .addOption(makeOptionWithArgument("path", "Path", true))
-
-        CommandLine commandLine = null;
-        try {
-            commandLine = new GnuParser().parse(options, args)
-        } catch (ParseException e) {
-            printHelp(options);
-            return 255;
-        }
+    public static int work(String path, String expansion) {
 
         Find unicode = new Find()
-        def path
-        path = commandLine.getOptionValue("path")
 
         if (unicode.isDirectory(path)) {
             Files.walk(Paths.get(path)).each {
-                if (!Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)) {
-                    unicode.logger.info("Analysis of the file " + it.fileName)
-                    if (commandLine.getOptionValue("expansion")) {
-                        if (Pattern.matches(/^(.*(${commandLine.getOptionValue("expansion")}))[^.]*$/, it.fileName.toString() as CharSequence)) {
+                if (!Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)){
+                    if (expansion != null) {
+                        if (Pattern.matches(/^(.*(${expansion}))[^.]*$/, it.fileName.toString() as CharSequence)) {
+                            unicode.logger.info("Analysis of the file " + it.fileName)
                             unicode.analysisFile(new FileInputStream(it.toString()))
                         }
                     } else {
+                        unicode.logger.info("Analysis of the file " + it.fileName)
                         unicode.analysisFile(new FileInputStream(it.toString()))
                     }
                 }
@@ -127,7 +117,25 @@ class Find {
     }
 
     public static void main(String[] args) {
-        System.exit(work(args))
+
+        Options options = new Options()
+                .addOption(makeOptionWithArgument("expansion", "Expansion", false))
+                .addOption(makeOptionWithArgument("path", "Path", true))
+
+        CommandLine commandLine = null;
+        try {
+            commandLine = new GnuParser().parse(options, args)
+        } catch (ParseException e) {
+            printHelp(options);
+            System.exit(255)
+        }
+
+        if(commandLine.getOptionValue("expansion")){
+            System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("expansion")))
+        } else {
+            System.exit(work(commandLine.getOptionValue("path"), null))
+        }
+
     }
 
 }
