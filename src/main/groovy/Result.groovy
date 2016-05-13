@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 Valery Butuzov
+ * <valery.butuzov@gmail.com>
+ * Licensed under the Apache License, Version 2.0
+ */
 class Result {
     int lineNumber
     String line

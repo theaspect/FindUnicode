@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 Valery Butuzov
+ * <valery.butuzov@gmail.com>
+ * Licensed under the Apache License, Version 2.0
+ */
 import groovyjarjarcommonscli.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -12,7 +17,7 @@ class Find {
     private static final int MAX_MATCH_IN_LINE = 5
     private static final int MAX_MATCH_IN_FILE = 100
 
-    Logger logger = LogManager.getLogger(Find.class);
+    Logger logger = LogManager.getLogger(Find.class)
 
     ArrayList<File> files
 
@@ -63,7 +68,7 @@ class Find {
         def result = new ArrayList<Result>()
 
         paths.eachLine {
-            if(it.startsWith("\uFEFF")){
+            if (it.startsWith("\uFEFF")) {
                 it = it.substring(1)
             }
             if (countInFile > MAX_MATCH_IN_FILE) {
@@ -80,7 +85,7 @@ class Find {
                 countInFile++
             }
 
-            if (lineNumber == 1){
+            if (lineNumber == 1) {
                 countInLine -= 1
             }
 
@@ -97,39 +102,44 @@ class Find {
         return result
     }
 
-    public static int work(String path, String expansion) {
+    void arrayResult(String it, String fileName) {
+        logger.info("Analysis of the file " + fileName)
+        analysisFile(new FileInputStream(it)).each {
+            aResult -> println aResult
+        }
+    }
+    /**
+     * @param   Way of the analysis of files
+     * @param   extensions of files. If extension = null, there is an analysis of all files
+     */
+    public static int work(String path, String extension) {
 
         Find unicode = new Find()
 
-        if (unicode.isDirectory(path)) {
-            Files.walk(Paths.get(path)).each {
-                if (!Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)){
-                    if (expansion != null) {
-                        if (Pattern.matches(/^(.*(${expansion}))[^.]*$/, it.fileName.toString() as CharSequence)) {
-                            unicode.logger.info("Analysis of the file " + it.fileName)
-                            unicode.analysisFile(new FileInputStream(it.toString())).each {
-                                aResult -> println aResult
-                            }
-                        }
-                    } else {
-                        unicode.logger.info("Analysis of the file " + it.fileName)
-                        unicode.analysisFile(new FileInputStream(it.toString())).each {
-                            aResult -> println aResult
-                        }
-                    }
-                }
-            }
-        } else {
+        if (!unicode.isDirectory(path)) {
+            unicode.logger.info("Not found directory")
             return 1
         }
+        Files.walk(Paths.get(path)).each {
+            /* Whether is the file */
+            if (Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)) {return}
+            if (extension != null) {
+                /* Choice on the given extensions */
+                if (Pattern.matches(/^(.*(${extension}))[^.]*$/, it.fileName.toString() as CharSequence)) {
+                    unicode.arrayResult(it.toString(), it.fileName.toString())
+                }
+            } else {
+                unicode.arrayResult(it.toString(), it.fileName.toString())
 
+            }
+        }
         return 0
     }
 
     public static void main(String[] args) {
 
         Options options = new Options()
-                .addOption(makeOptionWithArgument("expansion", "Expansion", false))
+                .addOption(makeOptionWithArgument("extension", "Extension", false))
                 .addOption(makeOptionWithArgument("path", "Path", true))
 
         CommandLine commandLine = null;
@@ -140,8 +150,8 @@ class Find {
             System.exit(255)
         }
 
-        if(commandLine.getOptionValue("expansion")){
-            System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("expansion")))
+        if (commandLine.getOptionValue("extension")) {
+            System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("extension")))
         } else {
             System.exit(work(commandLine.getOptionValue("path"), null))
         }
