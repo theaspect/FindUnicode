@@ -60,7 +60,7 @@ class Find {
         writer.flush()
     }
 
-    ArrayList analysisFile(FileInputStream paths) {
+    ArrayList analysisFile(InputStream paths) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
@@ -83,10 +83,6 @@ class Find {
                 indexNoAscii.add(matcher.start())
                 countInLine++
                 countInFile++
-            }
-
-            if (lineNumber == 1) {
-                countInLine -= 1
             }
 
             if (countInLine > MAX_MATCH_IN_LINE) {
