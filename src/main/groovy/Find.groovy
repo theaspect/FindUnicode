@@ -60,13 +60,13 @@ class Find {
         writer.flush()
     }
 
-    ArrayList analysisFile(InputStream paths) {
+    ArrayList analysisFile(InputStream paths, String ignore) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
         ArrayList indexNoAscii
         def result = new ArrayList<Result>()
-
+        ignore = (ignore == null) ? "" : ignore
         paths.eachLine {
             if (it.startsWith("\uFEFF")) {
                 it = it.substring(1)
@@ -80,17 +80,20 @@ class Find {
             countInLine = 0
             indexNoAscii = new ArrayList()
             while (matcher.find()) {
+                if (ignore.indexOf(matcher.group(0)) >= 0) {
+                    continue
+                }
                 indexNoAscii.add(matcher.start())
                 countInLine++
                 countInFile++
             }
 
             if (countInLine > MAX_MATCH_IN_LINE) {
-                result.add(new Result(lineNumber, it.substring(indexNoAscii.first(), indexNoAscii[MAX_MATCH_IN_LINE]), indexNoAscii.take(MAX_MATCH_IN_LINE), " more than 5 not ASCII of characters: "))
+                result.add(new Result(lineNumber, it.substring(0, indexNoAscii[MAX_MATCH_IN_LINE]), indexNoAscii.take(MAX_MATCH_IN_LINE), " more than 5 not ASCII of characters: "))
             }
 
             if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
-                result.add(new Result(lineNumber, it.substring(indexNoAscii.first(), indexNoAscii.last() + 1), indexNoAscii, " - " + countInLine + " not ASCII of characters: "))
+                result.add(new Result(lineNumber, it.substring(0, indexNoAscii.last() + 1), indexNoAscii, " - " + countInLine + " not ASCII of characters: "))
 
             }
         }
@@ -98,17 +101,17 @@ class Find {
         return result
     }
 
-    void arrayResult(String it, String fileName) {
+    void arrayResult(String it, String fileName, String ignore) {
         logger.info("Analysis of the file " + fileName)
-        analysisFile(new FileInputStream(it)).each {
+        analysisFile(new FileInputStream(it), ignore).each {
             aResult -> println aResult
         }
     }
     /**
-     * @param   Way of the analysis of files
-     * @param   extensions of files. If extension = null, there is an analysis of all files
+     * @param Way of the analysis of files
+     * @param extensions of files. If extension = null, there is an analysis of all files
      */
-    public static int work(String path, String extension) {
+    public static int work(String path, String extension = null, String ignore) {
 
         Find unicode = new Find()
 
@@ -117,17 +120,14 @@ class Find {
             return 1
         }
         Files.walk(Paths.get(path)).each {
-            /* Whether is the file */
-            if (Pattern.matches(/^(.)?[^.]*$/, it.fileName.toString() as CharSequence)) {return}
-            if (extension != null) {
-                /* Choice on the given extensions */
-                if (Pattern.matches(/^(.*(${extension}))[^.]*$/, it.fileName.toString() as CharSequence)) {
-                    unicode.arrayResult(it.toString(), it.fileName.toString())
-                }
-            } else {
-                unicode.arrayResult(it.toString(), it.fileName.toString())
-
+            if (!unicode.isDirectory(it as String)) {
+                return
             }
+            /* Choice on the given extensions */
+            if (extension != null && !Pattern.matches(/^(.*(${extension}))[^.]*$/, it.fileName.toString() as CharSequence)) {
+                return
+            }
+            unicode.arrayResult(it.toString(), it.toAbsolutePath().toString(), ignore)
         }
         return 0
     }
@@ -136,6 +136,7 @@ class Find {
 
         Options options = new Options()
                 .addOption(makeOptionWithArgument("extension", "Extension", false))
+                .addOption(makeOptionWithArgument("ignore", "Ignore", false))
                 .addOption(makeOptionWithArgument("path", "Path", true))
 
         CommandLine commandLine = null;
@@ -146,11 +147,7 @@ class Find {
             System.exit(255)
         }
 
-        if (commandLine.getOptionValue("extension")) {
-            System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("extension")))
-        } else {
-            System.exit(work(commandLine.getOptionValue("path"), null))
-        }
+        System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("extension"), commandLine.getOptionValue("ignore")))
 
     }
 
