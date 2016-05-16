@@ -51,7 +51,7 @@ class Find {
         writer.flush()
     }
 
-    static ArrayList analysisFile(InputStream paths, String ignore) {
+    ArrayList analysisFile(InputStream paths, String ignore) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
@@ -89,14 +89,19 @@ class Find {
             }
         }
         paths.close()
+
         return result
     }
 
     void arrayResult(String it, String fileName, String ignore, boolean v) {
-        logger.info("Analysis of the file " + fileName)
         if(v){
+            logger.info("Analysis of the file " + fileName)
             analysisFile(new FileInputStream(it), ignore).each {
                 println it
+            }
+        }else{
+            if(!analysisFile(new FileInputStream(it), ignore).empty){
+                logger.info(fileName)
             }
         }
 
@@ -105,7 +110,7 @@ class Find {
      * @param Way of the analysis of files
      * @param Extensions of files. If extension = null, there is an analysis of all files
      * @param Ignoring of characters. If ignore = null(""), look for all characters
-     * @param If v = false, outputs only names of files in which there is unicode. 
+     * @param If v = false, outputs only names of files in which there is unicode.
      *        If v = true, outputs names of files in which there is unicode, with an output of the specific character in line
      */
     public static int work(String path, String extension = null, String ignore, boolean v) {
