@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -20,15 +21,6 @@ class Find {
     Logger logger = LogManager.getLogger(Find.class)
 
     ArrayList<File> files
-
-    public boolean isDirectory(String path) {
-        File f = new File(path)
-        if (!f.exists()) {
-            return false
-        } else {
-            return true
-        }
-    }
 
     Find() {
         this.files = new ArrayList()
@@ -115,12 +107,12 @@ class Find {
 
         Find unicode = new Find()
 
-        if (!unicode.isDirectory(path)) {
+        if(!Files.isDirectory(Paths.get(path.toString()))){
             unicode.logger.info("Not found directory")
             return 1
         }
-        Files.walk(Paths.get(path)).each {
-            if (!unicode.isDirectory(it as String)) {
+        Files.walk(Paths.get(path.toString())).each {
+            if (Files.isDirectory(it)) {
                 return
             }
             /* Choice on the given extensions */
