@@ -94,15 +94,10 @@ class Find {
     }
 
     void arrayResult(String it, String fileName, String ignore, boolean v) {
-        if(v){
-            logger.info("Analysis of the file " + fileName)
-            analysisFile(new FileInputStream(it), ignore).each {
-                println it
-            }
-        }else{
-            if(!analysisFile(new FileInputStream(it), ignore).empty){
-                logger.info(fileName)
-            }
+        if(!v && analysisFile(new FileInputStream(it), ignore).empty){return}
+        logger.info("Analysis of the file " + fileName)
+        analysisFile(new FileInputStream(it), ignore).each {
+            println it
         }
 
     }
