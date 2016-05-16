@@ -27,7 +27,7 @@ class Result {
 
     String symbol(){
         for(int i = 0; i < this.noAscii.size(); i++){
-            while(this.numberSymbol.size() != (this.noAscii.get(i) - this.noAscii.first())){
+            while(this.numberSymbol.size() != this.noAscii.get(i)){
                 this.numberSymbol += " "
             }
             this.numberSymbol += "^"

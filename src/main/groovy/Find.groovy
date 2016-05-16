@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -52,7 +51,7 @@ class Find {
         writer.flush()
     }
 
-    ArrayList analysisFile(InputStream paths, String ignore) {
+    static ArrayList analysisFile(InputStream paths, String ignore) {
         int countInLine
         int countInFile = 0
         int lineNumber = 0
@@ -81,7 +80,7 @@ class Find {
             }
 
             if (countInLine > MAX_MATCH_IN_LINE) {
-                result.add(new Result(lineNumber, it.substring(0, indexNoAscii[MAX_MATCH_IN_LINE]), indexNoAscii.take(MAX_MATCH_IN_LINE), " more than 5 not ASCII of characters: "))
+                result.add(new Result(lineNumber, it.substring(0, indexNoAscii[MAX_MATCH_IN_LINE] as int), indexNoAscii.take(MAX_MATCH_IN_LINE) as ArrayList, " more than 5 not ASCII of characters: "))
             }
 
             if (countInLine != 0 && countInLine <= MAX_MATCH_IN_LINE) {
