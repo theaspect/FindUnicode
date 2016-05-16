@@ -92,17 +92,23 @@ class Find {
         return result
     }
 
-    void arrayResult(String it, String fileName, String ignore) {
+    void arrayResult(String it, String fileName, String ignore, boolean v) {
         logger.info("Analysis of the file " + fileName)
-        analysisFile(new FileInputStream(it), ignore).each {
-            aResult -> println aResult
+        if(v){
+            analysisFile(new FileInputStream(it), ignore).each {
+                println it
+            }
         }
+
     }
     /**
      * @param Way of the analysis of files
-     * @param extensions of files. If extension = null, there is an analysis of all files
+     * @param Extensions of files. If extension = null, there is an analysis of all files
+     * @param Ignoring of characters. If ignore = null(""), look for all characters
+     * @param If v = false, outputs only names of files in which there is unicode. 
+     *        If v = true, outputs names of files in which there is unicode, with an output of the specific character in line
      */
-    public static int work(String path, String extension = null, String ignore) {
+    public static int work(String path, String extension = null, String ignore, boolean v) {
 
         Find unicode = new Find()
 
@@ -118,7 +124,7 @@ class Find {
             if (extension != null && !Pattern.matches(/^(.*(${extension}))[^.]*$/, it.fileName.toString() as CharSequence)) {
                 return
             }
-            unicode.arrayResult(it.toString(), it.toAbsolutePath().toString(), ignore)
+            unicode.arrayResult(it.toString(), it.toAbsolutePath().toString(), ignore, v)
         }
         return 0
     }
@@ -128,6 +134,7 @@ class Find {
         Options options = new Options()
                 .addOption(makeOptionWithArgument("extension", "Extension", false))
                 .addOption(makeOptionWithArgument("ignore", "Ignore", false))
+                .addOption(new Option("v","V"))
                 .addOption(makeOptionWithArgument("path", "Path", true))
 
         CommandLine commandLine = null;
@@ -138,8 +145,7 @@ class Find {
             System.exit(255)
         }
 
-        System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("extension"), commandLine.getOptionValue("ignore")))
-
+        System.exit(work(commandLine.getOptionValue("path"), commandLine.getOptionValue("extension"), commandLine.getOptionValue("ignore"), commandLine.hasOption("v")))
     }
 
 }
